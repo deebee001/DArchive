@@ -1,4 +1,5 @@
 import * as zip from '@zip.js/zip.js';
+import streamSaver from 'streamsaver';
 import { FileSpecs } from '../types';
 
 class DummyDataStream {
@@ -9,7 +10,7 @@ class DummyDataStream {
   constructor(size: number) {
     this.size = size;
     this.generated = 0;
-    this.chunkSize = 1024 * 1024; // 1MB chunks
+    this.chunkSize = 64 * 1024; // 64KB chunks for smooth IPC
   }
 
   get stream(): ReadableStream<Uint8Array> {
@@ -27,12 +28,13 @@ class DummyDataStream {
         }
         const chunk = Math.min(self.chunkSize, self.size - self.generated);
         
-        // Always enqueue a new Uint8Array to avoid stream stalling/corruption
         controller.enqueue(new Uint8Array(chunk));
         self.generated += chunk;
         
-        // Throttling to keep browser responsive
-        await new Promise(r => setTimeout(r, 60));
+        // Yield the event loop every ~10MB to keep UI responsive and prevent IPC buffer bloat
+        if (self.generated % (self.chunkSize * 160) === 0) {
+          await new Promise(r => setTimeout(r, 5));
+        }
       }
     });
   }
@@ -43,43 +45,15 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
     throw new Error("No internet connection.");
   }
 
-  let fileStream: WritableStream<Uint8Array> | undefined;
-  let blobWriter: zip.BlobWriter | undefined;
-  let useBlob = false;
+  // Use local mitm.html to avoid using the external jimmywarting.github.io
+  streamSaver.mitm = window.location.origin + '/mitm.html';
 
-  // 1. Try modern File System Access API (Desktop Chrome/Edge/Opera)
-  if ('showSaveFilePicker' in window) {
-    try {
-      const handle = await (window as any).showSaveFilePicker({
-        suggestedName: `${specs.name}.zip`,
-        types: [{
-          description: 'ZIP Archive',
-          accept: { 'application/zip': ['.zip'] }
-        }]
-      });
-      fileStream = await handle.createWritable();
-    } catch (e: any) {
-      // User cancelled the prompt
-      if (e.name === 'AbortError') {
-        throw new Error('ABORTED_BY_USER');
-      }
-      useBlob = true;
-    }
-  } else {
-    useBlob = true; // Fallback to Blob for Mobile, Firefox, Safari
-  }
-
-  if (useBlob) {
-    if (specs.sizeBytes > 1.5 * 1024 * 1024 * 1024) {
-      console.warn("Generating a very large file in memory. The browser tab may crash depending on available RAM.");
-    }
-    blobWriter = new zip.BlobWriter("application/zip");
-  }
-
-  const writer = fileStream || blobWriter;
-  if (!writer) throw new Error("Could not initialize file writer");
+  // Use StreamSaver for a native browser download experience
+  // We do NOT provide an estimated size here because ZIP dynamic generation 
+  // causes exact size mismatches, which makes strict browsers stall at 0 B/s.
+  const fileStream = streamSaver.createWriteStream(`${specs.name}.zip`);
   
-  const outerZipWriter = new zip.ZipWriter(writer, { useWebWorkers: true });
+  const outerZipWriter = new zip.ZipWriter(fileStream, { useWebWorkers: false });
 
   // Add the text file to the outer zip if included
   if (specs.includeReadme) {
@@ -92,7 +66,7 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
   const innerZipWriter = new zip.ZipWriter(innerWritable, {
     password: specs.isLocked ? (specs.password || 'password') : undefined,
     zipCrypto: specs.isLocked ? true : undefined,
-    useWebWorkers: true
+    useWebWorkers: false
   });
 
   const innerZipPromise = (async () => {
@@ -119,17 +93,4 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
   await outerZipWriter.add(lockedZipName, readable, { level: 0 });
   await innerZipPromise;
   await outerZipWriter.close();
-
-  // 3. Trigger standard file download if using Blob Fallback
-  if (useBlob && blobWriter) {
-    const blob = await blobWriter.getData();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${specs.name}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 10000); // Cleanup memory
-  }
 }
