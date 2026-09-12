@@ -8,8 +8,6 @@ interface Props {
 }
 
 export default function DownloadView({ specs }: Props) {
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const formatSize = (bytes: number) => {
@@ -17,21 +15,11 @@ export default function DownloadView({ specs }: Props) {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  const handleDownload = async () => {
-    try {
-      setError(null);
-      setIsDownloading(true);
-      setProgress(0);
-      
-      await generateAndDownloadFile(specs, (pct) => {
-        setProgress(pct);
-      });
-      
-    } catch (err: any) {
+  const handleDownload = () => {
+    setError(null);
+    generateAndDownloadFile(specs).catch((err: any) => {
       setError(err.message || 'Download failed. Please check your connection.');
-    } finally {
-      setIsDownloading(false);
-    }
+    });
   };
 
   return (
@@ -59,30 +47,11 @@ export default function DownloadView({ specs }: Props) {
 
         <button 
           onClick={handleDownload}
-          disabled={isDownloading}
-          className="w-full bg-neutral-900 text-white rounded-xl px-6 py-4 font-medium hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-4 focus:ring-neutral-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+          className="w-full bg-neutral-900 text-white rounded-xl px-6 py-4 font-medium hover:bg-neutral-800 transition-colors focus:outline-none focus:ring-4 focus:ring-neutral-900/20 flex items-center justify-center gap-3"
         >
-          {isDownloading ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Downloading... {progress}%
-            </>
-          ) : (
-            <>
-              <Download className="w-5 h-5" />
-              Download File
-            </>
-          )}
+          <Download className="w-5 h-5" />
+          Download File
         </button>
-
-        {isDownloading && (
-          <div className="w-full h-1.5 bg-neutral-100 rounded-full mt-4 overflow-hidden">
-            <div 
-              className="h-full bg-neutral-900 transition-all duration-300 ease-out"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        )}
         
       </div>
     </div>
