@@ -1,0 +1,24 @@
+{
+  "entities": {
+    "FileLink": {
+      "title": "File Link",
+      "description": "File generation specifications",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "sizeBytes": { "type": "number" },
+        "isLocked": { "type": "boolean" },
+        "password": { "type": "string", "maxLength": 100 },
+        "textContent": { "type": "string", "maxLength": 10000 },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["name", "sizeBytes", "isLocked", "password", "textContent", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/links/{linkId}": {
+      "schema": { "$ref": "#/entities/FileLink" },
+      "description": "Publicly accessible file links"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "File Generator",
+  "description": "Generate custom dummy files on the client side with customizable size and password protection.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

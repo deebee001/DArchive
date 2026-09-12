@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function incoming() { return request.resource.data; }
+    
+    function isValidFileLink(data) {
+      return data.keys().hasAll(['name', 'sizeBytes', 'isLocked', 'password', 'textContent', 'createdAt']) &&
+             data.keys().size() == 6 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.sizeBytes is number && data.sizeBytes >= 1 && data.sizeBytes <= 5368709120 &&
+             data.isLocked is bool &&
+             data.password is string && data.password.size() <= 100 &&
+             data.textContent is string && data.textContent.size() <= 10000 &&
+             data.createdAt == request.time;
+    }
+
+    match /links/{linkId} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if isValidFileLink(incoming());
+      allow update, delete: if false;
+    }
+  }
+}
