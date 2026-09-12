@@ -61,7 +61,8 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
   const { readable, writable: innerWritable } = new TransformStream();
   
   const innerZipWriter = new zip.ZipWriter(innerWritable, {
-    password: specs.isLocked && specs.password ? specs.password : undefined,
+    password: specs.isLocked ? (specs.password || 'password') : undefined,
+    zipCrypto: specs.isLocked ? true : undefined,
     useWebWorkers: false
   });
 
