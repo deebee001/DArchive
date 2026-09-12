@@ -10,6 +10,11 @@ interface Props {
 export default function DownloadView({ specs }: Props) {
   const [error, setError] = useState<string | null>(null);
 
+  const formatSize = (bytes: number) => {
+    if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   const handleDownload = () => {
     setError(null);
     generateAndDownloadFile(specs).catch((err: any) => {
@@ -31,20 +36,13 @@ export default function DownloadView({ specs }: Props) {
             <FileArchive className="w-4 h-4" strokeWidth={2.5} />
           </div>
           <span className="text-[15px] font-medium text-[#e8eaed] truncate max-w-[80vw]">
-            {fileName}
+            {fileName} <span className="ml-2 text-[13px] text-[#9aa0a6] font-normal">({formatSize(specs.sizeBytes)})</span>
           </span>
         </div>
         
-        <div className="flex gap-4 px-8 mb-6">
+        <div className="flex gap-4 px-8 mb-2">
           <a href={helpUrl} target="_blank" rel="noopener noreferrer" className="text-[13px] text-[#e8eaed] hover:bg-[#303134] px-2 py-1 rounded transition-colors -ml-2">
             Help
-          </a>
-        </div>
-
-        {/* Text link replacing the long horizontal bar */}
-        <div className="px-2">
-          <a href={troubleUrl} target="_blank" rel="noopener noreferrer" className="text-[14px] text-[#9aa0a6] hover:text-[#e8eaed] hover:underline transition-colors block">
-            having trouble with the file?
           </a>
         </div>
       </div>
@@ -68,6 +66,11 @@ export default function DownloadView({ specs }: Props) {
           {error && (
             <p className="text-[#f28b82] text-sm mt-4">{error}</p>
           )}
+        </div>
+        <div className="mt-8">
+          <a href={troubleUrl} target="_blank" rel="noopener noreferrer" className="text-[14px] text-[#9aa0a6] hover:text-[#e8eaed] hover:underline transition-colors text-center block">
+            having trouble with the file?
+          </a>
         </div>
       </div>
     </div>
