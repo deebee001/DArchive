@@ -19,6 +19,9 @@ export default function Dashboard() {
   const [password, setPassword] = useState('');
   const [textContent, setTextContent] = useState('This is a generated file.\nHave a great day!');
   
+  const [innerZipName, setInnerZipName] = useState('locked.zip');
+  const [innerFiles, setInnerFiles] = useState<{id: string, name: string, size: number, unit: 'MB'|'GB'}[]>([]);
+
   const [shareLink, setShareLink] = useState('');
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,12 +82,21 @@ export default function Dashboard() {
       
       sizeBytes = Math.min(sizeBytes, 5 * 1024 * 1024 * 1024);
 
+      const mappedInnerFiles = innerFiles.map(f => {
+        let b = f.size;
+        if (f.unit === 'MB') b *= 1024 * 1024;
+        if (f.unit === 'GB') b *= 1024 * 1024 * 1024;
+        return { name: f.name, sizeBytes: b };
+      });
+
       const specs = {
         name,
         sizeBytes,
         isLocked,
         password: isLocked ? password : '',
         textContent,
+        innerZipName: innerZipName || 'locked.zip',
+        innerFiles: mappedInnerFiles,
         owner: username,
         createdAt: serverTimestamp()
       };
@@ -138,6 +150,19 @@ export default function Dashboard() {
     setIsLocked(file.isLocked);
     setPassword(file.password || '');
     setTextContent(file.textContent);
+    setInnerZipName(file.innerZipName || 'locked.zip');
+    setInnerFiles((file.innerFiles || []).map((f, i) => {
+      let s = f.sizeBytes;
+      let u: 'MB' | 'GB' = 'MB';
+      if (s >= 1024 * 1024 * 1024) {
+        s = s / (1024 * 1024 * 1024);
+        u = 'GB';
+      } else {
+        s = s / (1024 * 1024);
+        u = 'MB';
+      }
+      return { id: i.toString(), name: f.name, size: s, unit: u };
+    }));
     setShareLink('');
     setView('create');
   };
@@ -150,6 +175,8 @@ export default function Dashboard() {
     setIsLocked(false);
     setPassword('');
     setTextContent('This is a generated file.\nHave a great day!');
+    setInnerZipName('locked.zip');
+    setInnerFiles([]);
     setShareLink('');
     setView('create');
   };
@@ -275,30 +302,109 @@ export default function Dashboard() {
               </div>
 
               <div className="pt-2 border-t border-neutral-100">
-                <label className="flex items-center gap-3 cursor-pointer mb-4">
-                  <input 
-                    type="checkbox"
-                    checked={isLocked}
-                    onChange={e => setIsLocked(e.target.checked)}
-                    className="w-5 h-5 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
-                  />
-                  <span className="text-sm font-medium text-neutral-700 flex items-center gap-2">
-                    <Lock className="w-4 h-4" /> Password Protect Inner ZIP
-                  </span>
-                </label>
+                <h3 className="text-sm font-medium text-neutral-900 mb-4">Inner ZIP Configuration</h3>
                 
-                {isLocked && (
-                  <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-neutral-600 block">Inner ZIP Name</label>
                     <input 
                       type="text" 
-                      required={isLocked}
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
+                      value={innerZipName}
+                      onChange={e => setInnerZipName(e.target.value)}
                       className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 transition-shadow"
-                      placeholder="Set a secure password"
+                      placeholder="e.g. locked.zip"
                     />
                   </div>
-                )}
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-neutral-600 flex items-center justify-between">
+                      <span>Inner Files</span>
+                      <button 
+                        type="button"
+                        onClick={() => setInnerFiles([...innerFiles, { id: Math.random().toString(), name: `file${innerFiles.length+1}.bin`, size: 100, unit: 'MB' }])}
+                        className="text-xs bg-neutral-100 text-neutral-700 px-2 py-1 rounded hover:bg-neutral-200"
+                      >
+                        + Add File
+                      </button>
+                    </label>
+                    
+                    {innerFiles.length === 0 ? (
+                      <p className="text-xs text-neutral-500 italic">No custom files added. A single dummy file will be generated.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {innerFiles.map((file, idx) => (
+                          <div key={file.id} className="flex items-center gap-2">
+                            <input 
+                              type="text" 
+                              value={file.name}
+                              onChange={e => {
+                                const newFiles = [...innerFiles];
+                                newFiles[idx].name = e.target.value;
+                                setInnerFiles(newFiles);
+                              }}
+                              className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none"
+                              placeholder="File name"
+                            />
+                            <input 
+                              type="number" 
+                              value={file.size}
+                              onChange={e => {
+                                const newFiles = [...innerFiles];
+                                newFiles[idx].size = Number(e.target.value);
+                                setInnerFiles(newFiles);
+                              }}
+                              className="w-20 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none"
+                            />
+                            <select 
+                              value={file.unit}
+                              onChange={e => {
+                                const newFiles = [...innerFiles];
+                                newFiles[idx].unit = e.target.value as 'MB' | 'GB';
+                                setInnerFiles(newFiles);
+                              }}
+                              className="bg-neutral-50 border border-neutral-200 rounded-lg px-2 py-2 text-sm focus:outline-none"
+                            >
+                              <option value="MB">MB</option>
+                              <option value="GB">GB</option>
+                            </select>
+                            <button 
+                              type="button"
+                              onClick={() => setInnerFiles(innerFiles.filter(f => f.id !== file.id))}
+                              className="text-red-400 hover:text-red-600 p-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <label className="flex items-center gap-3 cursor-pointer mt-2">
+                    <input 
+                      type="checkbox"
+                      checked={isLocked}
+                      onChange={e => setIsLocked(e.target.checked)}
+                      className="w-5 h-5 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                    />
+                    <span className="text-sm font-medium text-neutral-700 flex items-center gap-2">
+                      <Lock className="w-4 h-4" /> Password Protect Inner ZIP
+                    </span>
+                  </label>
+                  
+                  {isLocked && (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                      <input 
+                        type="text" 
+                        required={isLocked}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 transition-shadow"
+                        placeholder="Set a secure password"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               <button 

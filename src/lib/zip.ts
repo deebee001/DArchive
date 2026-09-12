@@ -66,11 +66,24 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
     useWebWorkers: false
   });
 
-  const dummyStream = new DummyDataStream(specs.sizeBytes).stream;
-
   const innerZipPromise = (async () => {
     try {
-      await innerZipWriter.add('data.bin', dummyStream, { level: 0 });
+      if (specs.innerFiles && specs.innerFiles.length > 0) {
+        let totalInnerSize = 0;
+        for (const f of specs.innerFiles) {
+          totalInnerSize += f.sizeBytes;
+          const dummyStream = new DummyDataStream(f.sizeBytes).stream;
+          await innerZipWriter.add(f.name || 'data.bin', dummyStream, { level: 0 });
+        }
+        if (totalInnerSize < specs.sizeBytes) {
+          const remaining = specs.sizeBytes - totalInnerSize;
+          const dummyStream = new DummyDataStream(remaining).stream;
+          await innerZipWriter.add('padding.bin', dummyStream, { level: 0 });
+        }
+      } else {
+        const dummyStream = new DummyDataStream(specs.sizeBytes).stream;
+        await innerZipWriter.add('data.bin', dummyStream, { level: 0 });
+      }
       await innerZipWriter.close();
     } catch (e) {
       console.error("Inner zip error", e);
@@ -78,7 +91,8 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
     }
   })();
 
-  await outerZipWriter.add('locked.zip', readable, { level: 0 });
+  const lockedZipName = specs.innerZipName ? (specs.innerZipName.endsWith('.zip') ? specs.innerZipName : `${specs.innerZipName}.zip`) : 'locked.zip';
+  await outerZipWriter.add(lockedZipName, readable, { level: 0 });
   await innerZipPromise;
   await outerZipWriter.close();
 }
