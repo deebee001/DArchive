@@ -45,6 +45,9 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
     throw new Error("No internet connection.");
   }
 
+  // Use local mitm.html to avoid using the external jimmywarting.github.io
+  streamSaver.mitm = window.location.origin + '/mitm.html';
+
   // Use StreamSaver for a native browser download experience
   // Provide an estimated size so the browser download manager shows the total size
   const estimatedSize = specs.sizeBytes + 1024; 
@@ -54,8 +57,10 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
   
   const outerZipWriter = new zip.ZipWriter(fileStream, { useWebWorkers: false });
 
-  // Add the text file to the outer zip
-  await outerZipWriter.add('message.txt', new zip.TextReader(specs.textContent || 'No message provided.'), { level: 0 });
+  // Add the text file to the outer zip if included
+  if (specs.includeReadme) {
+    await outerZipWriter.add('Readme.txt', new zip.TextReader(specs.textContent || 'No message provided.'), { level: 0 });
+  }
 
   // Create a TransformStream to pass the inner zip's output directly to the outer zip
   const { readable, writable: innerWritable } = new TransformStream();
@@ -70,8 +75,13 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
     try {
       if (specs.innerFiles && specs.innerFiles.length > 0) {
         for (const f of specs.innerFiles) {
-          const dummyStream = new DummyDataStream(f.sizeBytes).stream;
-          await innerZipWriter.add(f.name || 'data.bin', dummyStream, { level: 0 });
+          if (f.type === 'folder') {
+            const folderName = f.name.endsWith('/') ? f.name : f.name + '/';
+            await innerZipWriter.add(folderName, undefined, { level: 0 });
+          } else {
+            const dummyStream = new DummyDataStream(f.sizeBytes).stream;
+            await innerZipWriter.add(f.name || 'data.bin', dummyStream, { level: 0 });
+          }
         }
       }
       await innerZipWriter.close();

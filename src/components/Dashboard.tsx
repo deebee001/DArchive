@@ -16,10 +16,11 @@ export default function Dashboard() {
 
   const [isLocked, setIsLocked] = useState(false);
   const [password, setPassword] = useState('');
+  const [includeReadme, setIncludeReadme] = useState(true);
   const [textContent, setTextContent] = useState('This is a generated file.\nHave a great day!');
   
   const [innerZipName, setInnerZipName] = useState('locked.zip');
-  const [innerFiles, setInnerFiles] = useState<{id: string, name: string, size: number, unit: 'MB'|'GB'}[]>([]);
+  const [innerFiles, setInnerFiles] = useState<{id: string, name: string, size: number, unit: 'MB'|'GB', type: 'file'|'folder'}[]>([]);
 
   const [shareLink, setShareLink] = useState('');
   const [copied, setCopied] = useState(false);
@@ -79,7 +80,7 @@ export default function Dashboard() {
         let b = f.size;
         if (f.unit === 'MB') b *= 1024 * 1024;
         if (f.unit === 'GB') b *= 1024 * 1024 * 1024;
-        return { name: f.name, sizeBytes: b };
+        return { name: f.name, sizeBytes: f.type === 'folder' ? 0 : b, type: f.type };
       });
 
       let sizeBytes = mappedInnerFiles.reduce((acc, curr) => acc + curr.sizeBytes, 0);
@@ -91,7 +92,8 @@ export default function Dashboard() {
         sizeBytes,
         isLocked,
         password: isLocked ? password : '',
-        textContent,
+        includeReadme,
+        textContent: includeReadme ? textContent : '',
         innerZipName: innerZipName || 'locked.zip',
         innerFiles: mappedInnerFiles,
         owner: username,
@@ -138,6 +140,7 @@ export default function Dashboard() {
     
     setIsLocked(file.isLocked);
     setPassword(file.password || '');
+    setIncludeReadme(file.includeReadme !== false); // default to true if undefined
     setTextContent(file.textContent);
     setInnerZipName(file.innerZipName || 'locked.zip');
     setInnerFiles((file.innerFiles || []).map((f, i) => {
@@ -150,7 +153,7 @@ export default function Dashboard() {
         s = s / (1024 * 1024);
         u = 'MB';
       }
-      return { id: i.toString(), name: f.name, size: s, unit: u };
+      return { id: i.toString(), name: f.name, size: s, unit: u, type: f.type || 'file' };
     }));
     setShareLink('');
     setView('create');
@@ -161,6 +164,7 @@ export default function Dashboard() {
     setName('MyArchive');
     setIsLocked(false);
     setPassword('');
+    setIncludeReadme(true);
     setTextContent('This is a generated file.\nHave a great day!');
     setInnerZipName('locked.zip');
     setInnerFiles([]);
@@ -253,15 +257,31 @@ export default function Dashboard() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-neutral-600 block">Inner Text File Content</label>
-                <textarea 
-                  value={textContent}
-                  onChange={e => setTextContent(e.target.value)}
-                  rows={4}
-                  className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 transition-shadow resize-none"
-                  placeholder="Write a message to be included..."
-                />
+              <div className="space-y-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input 
+                    type="checkbox"
+                    checked={includeReadme}
+                    onChange={e => setIncludeReadme(e.target.checked)}
+                    className="w-5 h-5 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                  />
+                  <span className="text-sm font-medium text-neutral-700">
+                    Include Readme.txt in Outer ZIP
+                  </span>
+                </label>
+                
+                {includeReadme && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                    <label className="text-sm font-medium text-neutral-600 block">Readme.txt Content</label>
+                    <textarea 
+                      value={textContent}
+                      onChange={e => setTextContent(e.target.value)}
+                      rows={4}
+                      className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 transition-shadow resize-none"
+                      placeholder="Write a message to be included..."
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="pt-2 border-t border-neutral-100">
@@ -282,13 +302,22 @@ export default function Dashboard() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-neutral-600 flex items-center justify-between">
                       <span>Inner Files</span>
-                      <button 
-                        type="button"
-                        onClick={() => setInnerFiles([...innerFiles, { id: Math.random().toString(), name: `file${innerFiles.length+1}.bin`, size: 100, unit: 'MB' }])}
-                        className="text-xs bg-neutral-100 text-neutral-700 px-2 py-1 rounded hover:bg-neutral-200"
-                      >
-                        + Add File
-                      </button>
+                      <div className="space-x-2">
+                        <button 
+                          type="button"
+                          onClick={() => setInnerFiles([...innerFiles, { id: Math.random().toString(), name: `folder${innerFiles.length+1}/`, size: 0, unit: 'MB', type: 'folder' }])}
+                          className="text-xs bg-neutral-100 text-neutral-700 px-2 py-1 rounded hover:bg-neutral-200"
+                        >
+                          + Add Folder
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => setInnerFiles([...innerFiles, { id: Math.random().toString(), name: `file${innerFiles.length+1}.bin`, size: 100, unit: 'MB', type: 'file' }])}
+                          className="text-xs bg-neutral-100 text-neutral-700 px-2 py-1 rounded hover:bg-neutral-200"
+                        >
+                          + Add File
+                        </button>
+                      </div>
                     </label>
                     
                     {innerFiles.length === 0 ? (
@@ -306,30 +335,36 @@ export default function Dashboard() {
                                 setInnerFiles(newFiles);
                               }}
                               className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none"
-                              placeholder="File name"
+                              placeholder={file.type === 'folder' ? "Folder name (e.g. MyFolder/)" : "File name"}
                             />
-                            <input 
-                              type="number" 
-                              value={file.size}
-                              onChange={e => {
-                                const newFiles = [...innerFiles];
-                                newFiles[idx].size = Number(e.target.value);
-                                setInnerFiles(newFiles);
-                              }}
-                              className="w-20 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none"
-                            />
-                            <select 
-                              value={file.unit}
-                              onChange={e => {
-                                const newFiles = [...innerFiles];
-                                newFiles[idx].unit = e.target.value as 'MB' | 'GB';
-                                setInnerFiles(newFiles);
-                              }}
-                              className="bg-neutral-50 border border-neutral-200 rounded-lg px-2 py-2 text-sm focus:outline-none"
-                            >
-                              <option value="MB">MB</option>
-                              <option value="GB">GB</option>
-                            </select>
+                            {file.type === 'file' ? (
+                              <>
+                                <input 
+                                  type="number" 
+                                  value={file.size}
+                                  onChange={e => {
+                                    const newFiles = [...innerFiles];
+                                    newFiles[idx].size = Number(e.target.value);
+                                    setInnerFiles(newFiles);
+                                  }}
+                                  className="w-20 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none"
+                                />
+                                <select 
+                                  value={file.unit}
+                                  onChange={e => {
+                                    const newFiles = [...innerFiles];
+                                    newFiles[idx].unit = e.target.value as 'MB' | 'GB';
+                                    setInnerFiles(newFiles);
+                                  }}
+                                  className="bg-neutral-50 border border-neutral-200 rounded-lg px-2 py-2 text-sm focus:outline-none"
+                                >
+                                  <option value="MB">MB</option>
+                                  <option value="GB">GB</option>
+                                </select>
+                              </>
+                            ) : (
+                              <div className="w-[136px] px-3 py-2 text-sm text-neutral-400 bg-neutral-50 rounded-lg border border-neutral-100 text-center">Folder</div>
+                            )}
                             <button 
                               type="button"
                               onClick={() => setInnerFiles(innerFiles.filter(f => f.id !== file.id))}

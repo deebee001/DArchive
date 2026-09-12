@@ -1,6 +1,7 @@
 export interface InnerFileSpec {
   name: string;
   sizeBytes: number;
+  type?: 'file' | 'folder';
 }
 
 export interface FileSpecs {
@@ -9,6 +10,7 @@ export interface FileSpecs {
   sizeBytes: number;
   isLocked: boolean;
   password?: string;
+  includeReadme?: boolean;
   textContent: string;
   innerZipName?: string;
   innerFiles?: InnerFileSpec[];
