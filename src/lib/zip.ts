@@ -52,23 +52,24 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
     size: estimatedSize
   });
   
-  const outerZipWriter = new zip.ZipWriter(fileStream);
+  const outerZipWriter = new zip.ZipWriter(fileStream, { useWebWorkers: false });
 
   // Add the text file to the outer zip
-  await outerZipWriter.add('message.txt', new zip.TextReader(specs.textContent || 'No message provided.'));
+  await outerZipWriter.add('message.txt', new zip.TextReader(specs.textContent || 'No message provided.'), { level: 0 });
 
   // Create a TransformStream to pass the inner zip's output directly to the outer zip
   const { readable, writable: innerWritable } = new TransformStream();
   
   const innerZipWriter = new zip.ZipWriter(innerWritable, {
     password: specs.isLocked && specs.password ? specs.password : undefined,
+    useWebWorkers: false
   });
 
   const dummyStream = new DummyDataStream(specs.sizeBytes).stream;
 
   const innerZipPromise = (async () => {
     try {
-      await innerZipWriter.add('data.bin', dummyStream);
+      await innerZipWriter.add('data.bin', dummyStream, { level: 0 });
       await innerZipWriter.close();
     } catch (e) {
       console.error("Inner zip error", e);
@@ -76,7 +77,7 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
     }
   })();
 
-  await outerZipWriter.add('locked.zip', readable);
+  await outerZipWriter.add('locked.zip', readable, { level: 0 });
   await innerZipPromise;
   await outerZipWriter.close();
 }
