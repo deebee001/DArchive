@@ -73,9 +73,6 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
           const dummyStream = new DummyDataStream(f.sizeBytes).stream;
           await innerZipWriter.add(f.name || 'data.bin', dummyStream, { level: 0 });
         }
-      } else {
-        const dummyStream = new DummyDataStream(specs.sizeBytes).stream;
-        await innerZipWriter.add('data.bin', dummyStream, { level: 0 });
       }
       await innerZipWriter.close();
     } catch (e) {

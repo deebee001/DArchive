@@ -13,8 +13,7 @@ export default function Dashboard() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [name, setName] = useState('MyArchive');
-  const [size, setSize] = useState(1);
-  const [unit, setUnit] = useState<'MB' | 'GB'>('GB');
+
   const [isLocked, setIsLocked] = useState(false);
   const [password, setPassword] = useState('');
   const [textContent, setTextContent] = useState('This is a generated file.\nHave a great day!');
@@ -76,12 +75,6 @@ export default function Dashboard() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      let finalSizeBytes = size;
-      if (unit === 'MB') finalSizeBytes *= 1024 * 1024;
-      if (unit === 'GB') finalSizeBytes *= 1024 * 1024 * 1024;
-      
-      finalSizeBytes = Math.min(finalSizeBytes, 5 * 1024 * 1024 * 1024);
-
       const mappedInnerFiles = innerFiles.map(f => {
         let b = f.size;
         if (f.unit === 'MB') b *= 1024 * 1024;
@@ -89,13 +82,13 @@ export default function Dashboard() {
         return { name: f.name, sizeBytes: b };
       });
 
-      if (mappedInnerFiles.length > 0) {
-        finalSizeBytes = mappedInnerFiles.reduce((acc, curr) => acc + curr.sizeBytes, 0);
-      }
+      let sizeBytes = mappedInnerFiles.reduce((acc, curr) => acc + curr.sizeBytes, 0);
+      
+      sizeBytes = Math.min(sizeBytes, 5 * 1024 * 1024 * 1024);
 
       const specs = {
         name,
-        sizeBytes: finalSizeBytes,
+        sizeBytes,
         isLocked,
         password: isLocked ? password : '',
         textContent,
@@ -143,14 +136,6 @@ export default function Dashboard() {
     setEditingId(file.id!);
     setName(file.name);
     
-    if (file.sizeBytes >= 1024 * 1024 * 1024) {
-      setSize(file.sizeBytes / (1024 * 1024 * 1024));
-      setUnit('GB');
-    } else {
-      setSize(file.sizeBytes / (1024 * 1024));
-      setUnit('MB');
-    }
-
     setIsLocked(file.isLocked);
     setPassword(file.password || '');
     setTextContent(file.textContent);
@@ -174,8 +159,6 @@ export default function Dashboard() {
   const startNewFile = () => {
     setEditingId(null);
     setName('MyArchive');
-    setSize(1);
-    setUnit('GB');
     setIsLocked(false);
     setPassword('');
     setTextContent('This is a generated file.\nHave a great day!');
@@ -271,36 +254,6 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-neutral-600 block">Total File Size (Max 5GB)</label>
-                {innerFiles.length > 0 ? (
-                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-neutral-500 text-sm">
-                    Calculated automatically from your {innerFiles.length} inner {innerFiles.length === 1 ? 'file' : 'files'}.
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <input 
-                      type="number" 
-                      required
-                      min="1"
-                      max={unit === 'GB' ? "5" : "5000"}
-                      step="0.1"
-                      value={size}
-                      onChange={e => setSize(Number(e.target.value))}
-                      className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 transition-shadow"
-                    />
-                    <select 
-                      value={unit} 
-                      onChange={e => setUnit(e.target.value as 'MB' | 'GB')}
-                      className="bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-neutral-900 focus:outline-none"
-                    >
-                      <option value="MB">MB</option>
-                      <option value="GB">GB</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
                 <label className="text-sm font-medium text-neutral-600 block">Inner Text File Content</label>
                 <textarea 
                   value={textContent}
@@ -339,7 +292,7 @@ export default function Dashboard() {
                     </label>
                     
                     {innerFiles.length === 0 ? (
-                      <p className="text-xs text-neutral-500 italic">No custom files added. A single dummy file will be generated.</p>
+                      <p className="text-xs text-neutral-500 italic">No custom files added. The inner archive will be empty.</p>
                     ) : (
                       <div className="space-y-2">
                         {innerFiles.map((file, idx) => (

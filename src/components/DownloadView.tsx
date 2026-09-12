@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FileSpecs } from '../types';
-import { Download, FileArchive, AlertCircle, ShieldCheck, Zap } from 'lucide-react';
+import { Download, FileArchive } from 'lucide-react';
 import { generateAndDownloadFile } from '../lib/zip';
 
 interface Props {
@@ -9,136 +9,70 @@ interface Props {
 
 export default function DownloadView({ specs }: Props) {
   const [error, setError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
-
-  const formatSize = (bytes: number) => {
-    if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
 
   const handleDownload = () => {
     setError(null);
-    setDownloading(true);
-    generateAndDownloadFile(specs)
-      .catch((err: any) => {
-        setError(err.message || 'Download failed. Please check your connection.');
-      })
-      .finally(() => {
-        setDownloading(false);
-      });
+    generateAndDownloadFile(specs).catch((err: any) => {
+      setError(err.message || 'Download failed. Please check your connection.');
+    });
   };
 
+  const fileName = `${specs.name}.zip`;
+  const helpUrl = "https://t.me/a12tools";
+  const troubleUrl = `https://t.me/a12tools?text=${encodeURIComponent('hello, i am having trouble using this file ' + fileName)}`;
+
   return (
-    <div className="min-h-screen bg-neutral-100 flex flex-col font-sans">
-      {/* Fake Header */}
-      <header className="bg-white border-b border-neutral-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center gap-2 font-bold text-xl text-indigo-600 tracking-tight">
-          <Zap className="w-6 h-6 fill-indigo-600 text-indigo-600" /> QuickDrop
+    <div className="min-h-screen bg-[#202124] text-white flex flex-col font-sans overflow-hidden">
+      
+      {/* Header Area */}
+      <div className="pt-4 px-4 pb-2">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="flex-shrink-0 bg-[#5f6368] p-1 rounded-sm text-neutral-200 flex items-center justify-center">
+            <FileArchive className="w-4 h-4" strokeWidth={2.5} />
+          </div>
+          <span className="text-[15px] font-medium text-[#e8eaed] truncate max-w-[80vw]">
+            {fileName}
+          </span>
         </div>
-        <div className="hidden sm:flex gap-4 text-sm font-medium text-neutral-500">
-          <span className="hover:text-neutral-900 cursor-pointer">Premium</span>
-          <span className="hover:text-neutral-900 cursor-pointer">Upload</span>
-          <span className="hover:text-neutral-900 cursor-pointer">Sign In</span>
-        </div>
-      </header>
-
-      <div className="flex-1 max-w-6xl w-full mx-auto p-4 flex flex-col lg:flex-row gap-6 my-4 lg:my-8">
         
-        {/* Left Ad Banner */}
-        <div className="hidden lg:flex flex-col w-64 shrink-0 gap-4">
-          <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 h-[300px] flex flex-col items-center justify-center text-center relative overflow-hidden group cursor-pointer hover:border-indigo-300 transition-colors">
-            <span className="absolute top-2 right-2 text-[10px] text-neutral-400 uppercase tracking-widest font-semibold">Ad</span>
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <ShieldCheck className="w-8 h-8 text-blue-600" />
-            </div>
-            <h3 className="font-bold text-neutral-800 mb-2">Secure Your PC Now</h3>
-            <p className="text-xs text-neutral-500 mb-4">Download the #1 rated antivirus for 2026. Protect your downloads.</p>
-            <button className="bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-full w-full">Start Free Trial</button>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 h-[250px] flex flex-col items-center justify-center text-center relative overflow-hidden cursor-pointer">
-            <span className="absolute top-2 right-2 text-[10px] text-neutral-400 uppercase tracking-widest font-semibold">Ad</span>
-            <div className="w-full h-32 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg mb-3 flex items-center justify-center text-white font-bold italic shadow-inner">
-              SPEED+ VPN
-            </div>
-            <p className="text-xs text-neutral-600 font-medium">Browse anonymously with military-grade encryption.</p>
-          </div>
+        <div className="flex gap-4 px-8 mb-6">
+          <a href={helpUrl} target="_blank" rel="noopener noreferrer" className="text-[13px] text-[#e8eaed] hover:bg-[#303134] px-2 py-1 rounded transition-colors -ml-2">
+            Help
+          </a>
         </div>
 
-        {/* Main Content Area (Download Box) */}
-        <div className="flex-1 flex flex-col items-center justify-start lg:justify-center">
-          <div className="w-full max-w-[320px] bg-white rounded-2xl shadow-xl border border-neutral-200 p-6 text-center transform hover:-translate-y-1 transition-transform duration-300">
-            
-            <div className="w-16 h-16 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center justify-center mx-auto mb-6">
-              <FileArchive className="w-8 h-8 text-indigo-500" />
-            </div>
-
-            <h1 className="text-xl font-bold tracking-tight mb-1 truncate text-neutral-900" title={`${specs.name}.zip`}>
-              {specs.name}.zip
-            </h1>
-            
-            <p className="text-xs font-medium text-neutral-500 mb-6 bg-neutral-100 py-1.5 px-3 rounded-full inline-block">
-              {formatSize(specs.sizeBytes)} • Secure Archive
-            </p>
-
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 text-red-700 text-xs rounded-lg flex items-start gap-2 text-left border border-red-100">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <p>{error}</p>
-              </div>
-            )}
-
-            <button 
-              onClick={handleDownload}
-              disabled={downloading}
-              className="w-full bg-indigo-600 text-white rounded-xl px-4 py-3.5 text-sm font-bold hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-4 focus:ring-indigo-600/20 flex items-center justify-center gap-2 shadow-md shadow-indigo-200 disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {downloading ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Generating...
-                </span>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" />
-                  Download File
-                </>
-              )}
-            </button>
-
-            <div className="mt-4 pt-4 border-t border-neutral-100">
-              <p className="text-[10px] text-neutral-400">By downloading, you agree to our Terms of Service. File is encrypted and scanned.</p>
-            </div>
-            
-          </div>
+        {/* Text link replacing the long horizontal bar */}
+        <div className="px-2">
+          <a href={troubleUrl} target="_blank" rel="noopener noreferrer" className="text-[14px] text-[#9aa0a6] hover:text-[#e8eaed] hover:underline transition-colors">
+            having trouble with the file?
+          </a>
         </div>
-
-        {/* Right Ad Banner */}
-        <div className="hidden xl:flex flex-col w-64 shrink-0 gap-4">
-          <div className="bg-white rounded-xl shadow-sm border border-neutral-200 h-[600px] flex flex-col items-center justify-center text-center relative overflow-hidden cursor-pointer group">
-            <span className="absolute top-2 right-2 text-[10px] text-neutral-400 uppercase tracking-widest font-semibold z-10">Ad</span>
-            <div className="absolute inset-0 bg-neutral-900 opacity-5 group-hover:opacity-10 transition-opacity" />
-            <div className="px-4 z-10">
-              <h3 className="text-2xl font-black text-neutral-900 uppercase tracking-tighter mb-2">Build Apps<br/>Without Code</h3>
-              <p className="text-sm text-neutral-600 mb-6">Launch your startup in days, not months.</p>
-              <button className="bg-black text-white px-6 py-3 rounded-lg font-bold w-full uppercase tracking-wide text-xs">Learn More</button>
-            </div>
-          </div>
-        </div>
-
       </div>
 
-      {/* Fake Footer */}
-      <footer className="mt-auto bg-white border-t border-neutral-200 py-8 px-6 text-center text-xs text-neutral-500">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© 2026 QuickDrop. All rights reserved.</p>
-          <div className="flex gap-4">
-            <span className="hover:text-neutral-900 cursor-pointer">DMCA</span>
-            <span className="hover:text-neutral-900 cursor-pointer">Privacy</span>
-            <span className="hover:text-neutral-900 cursor-pointer">Terms</span>
-            <span className="hover:text-neutral-900 cursor-pointer">Contact</span>
+      {/* Center Dialog */}
+      <div className="flex-1 flex flex-col items-center justify-center p-4 -mt-32">
+        <div className="bg-[#424242] rounded-lg max-w-[420px] w-full p-8 text-center shadow-xl">
+          <h2 className="text-[18px] font-normal text-[#e8eaed] mb-1">
+            Your download link is ready
+          </h2>
+          <p className="text-[15px] text-[#e8eaed] mb-8">
+            This file is too large to preview
+          </p>
+          
+          <div className="flex justify-center">
+            <button 
+              onClick={handleDownload}
+              className="bg-[#1a73e8] hover:bg-[#1b66c9] text-white px-6 py-2 rounded text-[14px] font-medium flex items-center justify-center gap-2 transition-colors focus:outline-none"
+            >
+              <Download className="w-4 h-4" strokeWidth={2.5} />
+              Download
+            </button>
           </div>
+          {error && (
+            <p className="text-[#f28b82] text-sm mt-4">{error}</p>
+          )}
         </div>
-      </footer>
+      </div>
     </div>
   );
 }
