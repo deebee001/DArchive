@@ -76,11 +76,11 @@ export default function Dashboard() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      let sizeBytes = size;
-      if (unit === 'MB') sizeBytes *= 1024 * 1024;
-      if (unit === 'GB') sizeBytes *= 1024 * 1024 * 1024;
+      let finalSizeBytes = size;
+      if (unit === 'MB') finalSizeBytes *= 1024 * 1024;
+      if (unit === 'GB') finalSizeBytes *= 1024 * 1024 * 1024;
       
-      sizeBytes = Math.min(sizeBytes, 5 * 1024 * 1024 * 1024);
+      finalSizeBytes = Math.min(finalSizeBytes, 5 * 1024 * 1024 * 1024);
 
       const mappedInnerFiles = innerFiles.map(f => {
         let b = f.size;
@@ -89,9 +89,13 @@ export default function Dashboard() {
         return { name: f.name, sizeBytes: b };
       });
 
+      if (mappedInnerFiles.length > 0) {
+        finalSizeBytes = mappedInnerFiles.reduce((acc, curr) => acc + curr.sizeBytes, 0);
+      }
+
       const specs = {
         name,
-        sizeBytes,
+        sizeBytes: finalSizeBytes,
         isLocked,
         password: isLocked ? password : '',
         textContent,
@@ -267,27 +271,33 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-neutral-600 block">File Size (Max 5GB)</label>
-                <div className="flex gap-2">
-                  <input 
-                    type="number" 
-                    required
-                    min="1"
-                    max={unit === 'GB' ? "5" : "5000"}
-                    step="0.1"
-                    value={size}
-                    onChange={e => setSize(Number(e.target.value))}
-                    className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 transition-shadow"
-                  />
-                  <select 
-                    value={unit} 
-                    onChange={e => setUnit(e.target.value as 'MB' | 'GB')}
-                    className="bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-neutral-900 focus:outline-none"
-                  >
-                    <option value="MB">MB</option>
-                    <option value="GB">GB</option>
-                  </select>
-                </div>
+                <label className="text-sm font-medium text-neutral-600 block">Total File Size (Max 5GB)</label>
+                {innerFiles.length > 0 ? (
+                  <div className="bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-neutral-500 text-sm">
+                    Calculated automatically from your {innerFiles.length} inner {innerFiles.length === 1 ? 'file' : 'files'}.
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input 
+                      type="number" 
+                      required
+                      min="1"
+                      max={unit === 'GB' ? "5" : "5000"}
+                      step="0.1"
+                      value={size}
+                      onChange={e => setSize(Number(e.target.value))}
+                      className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900/10 transition-shadow"
+                    />
+                    <select 
+                      value={unit} 
+                      onChange={e => setUnit(e.target.value as 'MB' | 'GB')}
+                      className="bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 text-neutral-900 focus:outline-none"
+                    >
+                      <option value="MB">MB</option>
+                      <option value="GB">GB</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
