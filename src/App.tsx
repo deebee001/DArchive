@@ -50,10 +50,9 @@ export default function App() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
-        <h1 className="text-xl font-medium text-neutral-900 mb-2">File not found</h1>
-        <p className="text-neutral-500">{error}</p>
-        <button onClick={() => window.location.href = '/'} className="mt-6 text-sm underline text-neutral-900 hover:text-neutral-600">Go to Dashboard</button>
+      <div className="min-h-screen bg-[#202124] flex flex-col items-center justify-center p-4 font-sans text-center">
+        <h1 className="text-[18px] font-normal text-[#e8eaed] mb-2">File not found</h1>
+        <p className="text-[15px] text-[#9aa0a6]">{error}</p>
       </div>
     );
   }
