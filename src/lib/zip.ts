@@ -45,9 +45,6 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
     throw new Error("No internet connection.");
   }
 
-  // Use local mitm.html to avoid using the external jimmywarting.github.io
-  streamSaver.mitm = window.location.origin + '/mitm.html';
-
   // Use StreamSaver for a native browser download experience
   // Provide an estimated size so the browser download manager shows the total size
   const estimatedSize = specs.sizeBytes + 1024; 
