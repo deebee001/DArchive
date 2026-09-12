@@ -9,6 +9,7 @@ interface Props {
 
 export default function DownloadView({ specs }: Props) {
   const [error, setError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const formatSize = (bytes: number) => {
     if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
@@ -17,9 +18,17 @@ export default function DownloadView({ specs }: Props) {
 
   const handleDownload = () => {
     setError(null);
-    generateAndDownloadFile(specs).catch((err: any) => {
-      setError(err.message || 'Download failed. Please check your connection.');
-    });
+    setIsDownloading(true);
+    generateAndDownloadFile(specs)
+      .then(() => {
+        setIsDownloading(false);
+      })
+      .catch((err: any) => {
+        setIsDownloading(false);
+        // Do not show an error if the user just closed the desktop Save File prompt
+        if (err.message === 'ABORTED_BY_USER') return;
+        setError(err.message || 'Download failed. Please check your connection.');
+      });
   };
 
   const fileName = `${specs.name}.zip`;
@@ -57,10 +66,20 @@ export default function DownloadView({ specs }: Props) {
           <div className="flex justify-center">
             <button 
               onClick={handleDownload}
-              className="bg-[#1a73e8] hover:bg-[#1b66c9] text-white px-5 py-2 rounded text-[13px] font-medium flex items-center justify-center gap-2 transition-colors focus:outline-none"
+              disabled={isDownloading}
+              className={`bg-[#1a73e8] hover:bg-[#1b66c9] text-white px-5 py-2 rounded text-[13px] font-medium flex items-center justify-center gap-2 transition-colors focus:outline-none ${isDownloading ? 'opacity-80 cursor-not-allowed' : ''}`}
             >
-              <Download className="w-4 h-4" strokeWidth={2.5} />
-              Download
+              {isDownloading ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Preparing File...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" strokeWidth={2.5} />
+                  Download
+                </>
+              )}
             </button>
           </div>
           {error && (

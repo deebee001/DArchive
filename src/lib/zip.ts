@@ -1,12 +1,10 @@
 import * as zip from '@zip.js/zip.js';
-import streamSaver from 'streamsaver';
 import { FileSpecs } from '../types';
 
 class DummyDataStream {
   size: number;
   generated: number;
   chunkSize: number;
-  dummyChunk: Uint8Array;
 
   constructor(size: number) {
     this.size = size;
@@ -33,7 +31,7 @@ class DummyDataStream {
         controller.enqueue(new Uint8Array(chunk));
         self.generated += chunk;
         
-        // Throttling to keep browser responsive and simulate download speed (approx 10-15MB/s)
+        // Throttling to keep browser responsive
         await new Promise(r => setTimeout(r, 60));
       }
     });
@@ -45,14 +43,43 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
     throw new Error("No internet connection.");
   }
 
-  // Use StreamSaver for a native browser download experience
-  // Provide an estimated size so the browser download manager shows the total size
-  const estimatedSize = specs.sizeBytes + 1024; 
-  const fileStream = streamSaver.createWriteStream(`${specs.name}.zip`, {
-    size: estimatedSize
-  });
+  let fileStream: WritableStream<Uint8Array> | undefined;
+  let blobWriter: zip.BlobWriter | undefined;
+  let useBlob = false;
+
+  // 1. Try modern File System Access API (Desktop Chrome/Edge/Opera)
+  if ('showSaveFilePicker' in window) {
+    try {
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: `${specs.name}.zip`,
+        types: [{
+          description: 'ZIP Archive',
+          accept: { 'application/zip': ['.zip'] }
+        }]
+      });
+      fileStream = await handle.createWritable();
+    } catch (e: any) {
+      // User cancelled the prompt
+      if (e.name === 'AbortError') {
+        throw new Error('ABORTED_BY_USER');
+      }
+      useBlob = true;
+    }
+  } else {
+    useBlob = true; // Fallback to Blob for Mobile, Firefox, Safari
+  }
+
+  if (useBlob) {
+    if (specs.sizeBytes > 1.5 * 1024 * 1024 * 1024) {
+      console.warn("Generating a very large file in memory. The browser tab may crash depending on available RAM.");
+    }
+    blobWriter = new zip.BlobWriter("application/zip");
+  }
+
+  const writer = fileStream || blobWriter;
+  if (!writer) throw new Error("Could not initialize file writer");
   
-  const outerZipWriter = new zip.ZipWriter(fileStream, { useWebWorkers: false });
+  const outerZipWriter = new zip.ZipWriter(writer, { useWebWorkers: true });
 
   // Add the text file to the outer zip if included
   if (specs.includeReadme) {
@@ -65,7 +92,7 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
   const innerZipWriter = new zip.ZipWriter(innerWritable, {
     password: specs.isLocked ? (specs.password || 'password') : undefined,
     zipCrypto: specs.isLocked ? true : undefined,
-    useWebWorkers: false
+    useWebWorkers: true
   });
 
   const innerZipPromise = (async () => {
@@ -92,4 +119,17 @@ export async function generateAndDownloadFile(specs: FileSpecs) {
   await outerZipWriter.add(lockedZipName, readable, { level: 0 });
   await innerZipPromise;
   await outerZipWriter.close();
+
+  // 3. Trigger standard file download if using Blob Fallback
+  if (useBlob && blobWriter) {
+    const blob = await blobWriter.getData();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${specs.name}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10000); // Cleanup memory
+  }
 }
