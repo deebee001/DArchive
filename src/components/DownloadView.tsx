@@ -25,7 +25,7 @@ export default function DownloadView({ specs }: Props) {
     <div className="min-h-screen bg-[#202124] text-white flex flex-col font-sans overflow-hidden">
       
       {/* Header Area */}
-      <div className="pt-4 px-4 pb-2">
+      <div className="pt-4 px-4 pb-2 relative z-10">
         <div className="flex items-center gap-3 mb-1">
           <div className="flex-shrink-0 bg-[#5f6368] p-1 rounded-sm text-neutral-200 flex items-center justify-center">
             <FileArchive className="w-4 h-4" strokeWidth={2.5} />
@@ -43,26 +43,23 @@ export default function DownloadView({ specs }: Props) {
 
         {/* Text link replacing the long horizontal bar */}
         <div className="px-2">
-          <a href={troubleUrl} target="_blank" rel="noopener noreferrer" className="text-[14px] text-[#9aa0a6] hover:text-[#e8eaed] hover:underline transition-colors">
+          <a href={troubleUrl} target="_blank" rel="noopener noreferrer" className="text-[14px] text-[#9aa0a6] hover:text-[#e8eaed] hover:underline transition-colors block">
             having trouble with the file?
           </a>
         </div>
       </div>
 
       {/* Center Dialog */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 -mt-32">
-        <div className="bg-[#424242] rounded-lg max-w-[420px] w-full p-8 text-center shadow-xl">
-          <h2 className="text-[18px] font-normal text-[#e8eaed] mb-1">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 -mt-32 relative z-0">
+        <div className="bg-[#424242] rounded-lg max-w-[260px] w-full p-5 text-center shadow-xl">
+          <h2 className="text-[16px] font-normal text-[#e8eaed] mb-6">
             Your download link is ready
           </h2>
-          <p className="text-[15px] text-[#e8eaed] mb-8">
-            This file is too large to preview
-          </p>
           
           <div className="flex justify-center">
             <button 
               onClick={handleDownload}
-              className="bg-[#1a73e8] hover:bg-[#1b66c9] text-white px-6 py-2 rounded text-[14px] font-medium flex items-center justify-center gap-2 transition-colors focus:outline-none"
+              className="bg-[#1a73e8] hover:bg-[#1b66c9] text-white px-5 py-2 rounded text-[13px] font-medium flex items-center justify-center gap-2 transition-colors focus:outline-none"
             >
               <Download className="w-4 h-4" strokeWidth={2.5} />
               Download
