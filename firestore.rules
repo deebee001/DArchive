@@ -8,21 +8,21 @@ service cloud.firestore {
     function incoming() { return request.resource.data; }
     
     function isValidFileLink(data) {
-      return data.keys().hasAll(['name', 'sizeBytes', 'isLocked', 'password', 'textContent', 'createdAt']) &&
-             data.keys().size() == 6 &&
+      return data.keys().hasAll(['name', 'sizeBytes', 'isLocked', 'password', 'textContent', 'createdAt', 'owner']) &&
+             data.keys().size() >= 6 &&
              data.name is string && data.name.size() <= 100 &&
              data.sizeBytes is number && data.sizeBytes >= 1 && data.sizeBytes <= 5368709120 &&
              data.isLocked is bool &&
              data.password is string && data.password.size() <= 100 &&
              data.textContent is string && data.textContent.size() <= 10000 &&
-             data.createdAt == request.time;
+             data.owner is string;
     }
 
     match /links/{linkId} {
-      allow get: if true;
-      allow list: if false;
+      allow read: if true;
       allow create: if isValidFileLink(incoming());
-      allow update, delete: if false;
+      allow update: if isValidFileLink(incoming());
+      allow delete: if true;
     }
   }
 }

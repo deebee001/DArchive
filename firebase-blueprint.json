@@ -10,9 +10,10 @@
         "isLocked": { "type": "boolean" },
         "password": { "type": "string", "maxLength": 100 },
         "textContent": { "type": "string", "maxLength": 10000 },
-        "createdAt": { "type": "number" }
+        "createdAt": { "type": "number" },
+        "owner": { "type": "string", "maxLength": 100 }
       },
-      "required": ["name", "sizeBytes", "isLocked", "password", "textContent", "createdAt"]
+      "required": ["name", "sizeBytes", "isLocked", "password", "textContent", "createdAt", "owner"]
     }
   },
   "firestore": {

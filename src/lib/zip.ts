@@ -11,8 +11,7 @@ class DummyDataStream {
   constructor(size: number) {
     this.size = size;
     this.generated = 0;
-    this.chunkSize = 1024 * 1024; // 1MB chunks for throttling
-    this.dummyChunk = new Uint8Array(this.chunkSize);
+    this.chunkSize = 1024 * 1024; // 1MB chunks
   }
 
   get stream(): ReadableStream<Uint8Array> {
@@ -30,12 +29,12 @@ class DummyDataStream {
         }
         const chunk = Math.min(self.chunkSize, self.size - self.generated);
         
-        // Enqueue the dummy chunk (or a slice if it's the last one)
-        controller.enqueue(chunk === self.chunkSize ? self.dummyChunk : self.dummyChunk.slice(0, chunk));
+        // Always enqueue a new Uint8Array to avoid stream stalling/corruption
+        controller.enqueue(new Uint8Array(chunk));
         self.generated += chunk;
         
-        // Throttle to approx 10MB/s (wait 100ms per 1MB chunk)
-        await new Promise(r => setTimeout(r, 100));
+        // Throttling to keep browser responsive and simulate download speed (approx 10-15MB/s)
+        await new Promise(r => setTimeout(r, 60));
       }
     });
   }
