@@ -10,7 +10,6 @@ interface Props {
 export default function DownloadView({ specs }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [progress, setProgress] = useState<number>(0);
 
   const formatSize = (bytes: number) => {
     if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
@@ -20,17 +19,12 @@ export default function DownloadView({ specs }: Props) {
   const handleDownload = () => {
     setError(null);
     setIsDownloading(true);
-    setProgress(0);
-    generateAndDownloadFile(specs, (pct) => {
-      setProgress(pct);
-    })
+    generateAndDownloadFile(specs)
       .then(() => {
         setIsDownloading(false);
-        setProgress(0);
       })
       .catch((err: any) => {
         setIsDownloading(false);
-        setProgress(0);
         // Do not show an error if the user just closed the desktop Save File prompt
         if (err.message === 'ABORTED_BY_USER') return;
         setError(err.message || 'Download failed. Please check your connection.');
@@ -78,7 +72,7 @@ export default function DownloadView({ specs }: Props) {
               {isDownloading ? (
                 <>
                   <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  {progress > 0 ? `Preparing (${progress}%)...` : 'Preparing File...'}
+                  Preparing File...
                 </>
               ) : (
                 <>

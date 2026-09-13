@@ -17,7 +17,7 @@ export default function App() {
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    const fileId = url.searchParams.get('file')?.trim();
+    const fileId = url.searchParams.get('file');
     
     if (fileId) {
       const fetchSpecs = async () => {
@@ -51,7 +51,7 @@ export default function App() {
   if (error) {
     return (
       <div className="min-h-screen bg-[#202124] flex flex-col items-center justify-center p-4 font-sans text-center">
-        <h1 className="text-[18px] font-normal text-[#e8eaed] mb-2">Link not found</h1>
+        <h1 className="text-[18px] font-normal text-[#e8eaed] mb-2">File not found</h1>
         <p className="text-[15px] text-[#9aa0a6]">{error}</p>
       </div>
     );

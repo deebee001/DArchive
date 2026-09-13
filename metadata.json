@@ -1,6 +1,6 @@
 {
   "name": "File repository",
-  "description": "Secure file repository and archive sharing",
+  "description": "",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
